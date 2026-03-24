@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ljubljana SSHMM — Layer Inventory (Editable)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --bg2: #181c27; --bg3: #1e2333;
+    --border: rgba(255,255,255,0.08); --text: #e8eaf0; --muted: #7a7f94;
+    --coral: #e8724a; --blue: #4a9edd; --purple: #8b6fd4;
+    --green: #5daa6e; --teal: #3dbfa0; --amber: #d4953a;
+    --pink: #d46b8e; --gray: #6b7080;
+  }
+  html { background: #0f1117; }
+  body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; line-height: 1.5; padding: 32px; min-height: 100vh; }
+
+  .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 10px 14px; background: var(--bg2); border-radius: 6px; border: 1px solid var(--border); flex-wrap: wrap; }
+  .toolbar-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.5px; }
+  .btn { padding: 5px 12px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 11px; cursor: pointer; transition: all 0.15s; }
+  .btn:hover { background: #2a2f45; border-color: rgba(255,255,255,0.2); }
+  .btn-primary { background: rgba(61,191,160,0.15); border-color: rgba(61,191,160,0.35); color: #3dbfa0; }
+  .btn-primary:hover { background: rgba(61,191,160,0.25); }
+  .btn-danger { background: rgba(232,114,74,0.12); border-color: rgba(232,114,74,0.3); color: #e8724a; }
+  .btn-danger:hover { background: rgba(232,114,74,0.22); }
+  .edit-hint { font-size: 11px; color: var(--muted); font-style: italic; }
+
+  header { margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+  h1 { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 12px; font-family: 'IBM Plex Mono', monospace; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-bottom: 20px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  .badge { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.3px; white-space: nowrap; }
+  .badge-dynamic { background: rgba(94,154,255,0.12); color: #7ab4f5; border: 1px solid rgba(94,154,255,0.2); }
+  .badge-static  { background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid var(--border); }
+  .badge-encoder { background: rgba(61,191,160,0.12); color: #3dbfa0; border: 1px solid rgba(61,191,160,0.25); font-size: 9px; margin-left: 5px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  .group-row td { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); padding: 14px 12px 5px; border-bottom: 1px solid var(--border); }
+  tbody tr.data-row { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr.data-row:hover { background: var(--bg2); }
+  tbody tr.data-row.selected { background: rgba(61,191,160,0.06); outline: 1px solid rgba(61,191,160,0.2); }
+  td { padding: 8px 12px; vertical-align: top; }
+
+  .layer-name { font-weight: 500; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .color-tag { width: 3px; height: 28px; border-radius: 2px; flex-shrink: 0; }
+  .coral { background: var(--coral); } .blue { background: var(--blue); } .purple { background: var(--purple); }
+  .green { background: var(--green); } .teal { background: var(--teal); } .amber { background: var(--amber); }
+  .pink { background: var(--pink); } .gray { background: var(--gray); }
+
+  .source { color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+  .resolution { color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+  .role { color: #a8b0c8; font-size: 12px; }
+  .encoder { font-size: 11px; color: var(--muted); }
+  .comment { color: #8a90a8; font-size: 11px; line-height: 1.6; }
+
+  .viewer-link { display: inline-block; margin-top: 3px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #58b4f0; text-decoration: none; border-bottom: 1px dashed rgba(88,180,240,0.4); transition: color 0.15s; }
+  .viewer-link:hover { color: #90d0ff; }
+  .ref-link { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #58b4f0; text-decoration: none; border-bottom: 1px dashed rgba(88,180,240,0.3); }
+  .ref-link:hover { color: #90d0ff; }
+
+  /* Editable cells */
+  [contenteditable="true"] { outline: none; border-radius: 3px; transition: background 0.1s; min-height: 18px; }
+  [contenteditable="true"]:focus { background: rgba(255,255,255,0.05); outline: 1px solid rgba(61,191,160,0.4); padding: 2px 4px; margin: -2px -4px; }
+  [contenteditable="true"]:hover:not(:focus) { background: rgba(255,255,255,0.03); }
+
+  .row-actions { display: none; gap: 4px; margin-top: 6px; }
+  tr.data-row:hover .row-actions { display: flex; }
+  .row-btn { padding: 2px 7px; border-radius: 3px; border: 1px solid var(--border); background: var(--bg3); color: var(--muted); font-size: 10px; font-family: 'IBM Plex Mono', monospace; cursor: pointer; }
+  .row-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+  .row-btn-del { color: #e8724a; border-color: rgba(232,114,74,0.2); }
+  .row-btn-del:hover { background: rgba(232,114,74,0.1); }
+
+  .add-row-btn { width: 100%; padding: 8px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); border: 1px dashed rgba(255,255,255,0.1); border-radius: 4px; cursor: pointer; margin-top: 4px; background: transparent; transition: all 0.15s; }
+  .add-row-btn:hover { color: #3dbfa0; border-color: rgba(61,191,160,0.3); background: rgba(61,191,160,0.05); }
+
+  footer { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+  #save-indicator { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #3dbfa0; opacity: 0; transition: opacity 0.3s; }
+  #save-indicator.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <span class="toolbar-label">EDITING MODE</span>
+  <button class="btn btn-primary" onclick="exportHTML()">↓ Export HTML</button>
+  <button class="btn" onclick="addNewRow()">+ Add row</button>
+  <button class="btn" onclick="addNewGroup()">+ Add group</button>
+  <button class="btn btn-danger" onclick="clearSelected()">× Delete selected</button>
+  <span id="save-indicator">✓ copied</span>
+  <span class="edit-hint">Click any cell to edit · hover row for actions</span>
+</div>
+
+<header>
+  <h1 contenteditable="true">Ljubljana SSHMM — Candidate Layer Inventory</h1>
+  <div class="subtitle" contenteditable="true">Potential input layers for Sharing-State Hidden Markov Model · Urban typology study · Selection TBD</div>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--coral)"></div>Thermal</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Air temperature</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Traffic / Mobility</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--gray)"></div>Population</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Greenery / canopy</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--teal)"></div>Morphology</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Emissions / AQ</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--pink)"></div>Suggested addition</div>
+</div>
+
+<table id="main-table">
+  <thead>
+    <tr>
+      <th style="width:15%" contenteditable="true">Layer</th>
+      <th style="width:15%" contenteditable="true">Source</th>
+      <th style="width:10%" contenteditable="true">Resolution</th>
+      <th style="width:18%" contenteditable="true">Role in HMM</th>
+      <th style="width:12%" contenteditable="true">Type (suggested encoder)</th>
+      <th style="width:30%" contenteditable="true">Additional comment</th>
+    </tr>
+  </thead>
+  <tbody id="table-body">
+
+    <tr class="group-row"><td colspan="7" contenteditable="true">Thermal</td></tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag coral"></div><span contenteditable="true">Surface temp (LST)</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">Landsat 8/9 L2 · ST_B10<br><a class="viewer-link" href="https://livingatlas.arcgis.com/landsat-surface-temp/" target="_blank">↗ ArcGIS LST Explorer</a></td>
+      <td class="resolution" contenteditable="true">30m · 8-day</td>
+      <td class="role" contenteditable="true">Primary observation · monthly anomaly + variance</td>
+      <td contenteditable="true"><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">Transformer</span>Dolge časovne serije · sezonske odvisnosti</td>
+      <td class="comment" contenteditable="true">Daytime overpass ~10:00 AM local. Use anomaly (observed − monthly climatology) not raw °C to remove seasonal cycle. <a class="ref-link" href="https://www.usgs.gov/landsat-missions/landsat-collection-2-level-2-science-products" target="_blank">↗ USGS L2 Science Products</a></td>
+    </tr>
+
+    <tr class="group-row"><td colspan="7" contenteditable="true">Air temperature</td></tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag blue"></div><span contenteditable="true">Air temp — official</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">ARSO · Bežigrad + Brnik<br><a class="viewer-link" href="https://meteo.arso.gov.si/met/sl/app/webmet/" target="_blank">↗ ARSO meteo portal</a></td>
+      <td class="resolution" contenteditable="true">Point · hourly</td>
+      <td class="role" contenteditable="true">Ground truth · LST offset calibration</td>
+      <td contenteditable="true"><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">LSTM</span>Kratke lokalne odvisnosti · dnevni ritem</td>
+      <td class="comment" contenteditable="true">Only 2 stations in/near Ljubljana. Bežigrad is the long-term reference (since 1948). Use for LST→air temp offset calibration and as HMM validation anchor. <a class="ref-link" href="https://meteo.arso.gov.si" target="_blank">↗ ARSO</a></td>
+    </tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag blue"></div><span contenteditable="true">Air temp — crowdsourced</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">Netatmo · EUMETNET/CEDA<br><a class="viewer-link" href="https://weathermap.netatmo.com/" target="_blank">↗ Netatmo Weather Map</a></td>
+      <td class="resolution" contenteditable="true">~100–300m · 5-min</td>
+      <td class="role" contenteditable="true">Urban canopy layer obs. · spatial interpolation</td>
+      <td contenteditable="true"><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">LSTM</span>Kratke lokalne odvisnosti · dnevni ritem</td>
+      <td class="comment" contenteditable="true">Slovenia confirmed in EUMETNET archive. Needs QC filtering — sensors placed near heat sources give biased readings. Dense enough in Ljubljana for spatial interpolation. <a class="ref-link" href="https://catalogue.ceda.ac.uk/uuid/e8793d74a651426692faa100e3b2acd3/" target="_blank">↗ EUMETNET/CEDA archive</a></td>
+    </tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag blue"></div><span contenteditable="true">Veter — hitrost in smer</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">ARSO · Bežigrad + Brnik + ERA5</td>
+      <td class="resolution" contenteditable="true">Point · hourly · ~30km ERA5</td>
+      <td class="role" contenteditable="true">Disperzija onesnaženosti · UHI modulacija · inverzija</td>
+      <td contenteditable="true"><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">LSTM</span>Urne serije · smer + hitrost kot 2D vektor</td>
+      <td class="comment" contenteditable="true">Ključen za razumevanje disperzije PM in NO₂ — šibak veter + inverzija = akumulacija v kotlini. Bežigrad meri od leta 1948. ERA5 pokrije prostorsko porazdelitev. Smer vnesite kot sin/cos komponenti, ne kot kot v stopinjah.</td>
+    </tr>
+
+    <tr class="group-row"><td colspan="7" contenteditable="true">Traffic</td></tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag purple"></div><span contenteditable="true">Traffic — official (ILC)</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">DRSI / MOL · inductive loops</td>
+      <td class="resolution" contenteditable="true">Point · hourly</td>
+      <td class="role" contenteditable="true">Primary observation · AM/PM peak signal</td>
+      <td contenteditable="true"><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">LSTM</span>Dnevni ritem · 2 konici · kratke odvisnosti</td>
+      <td class="comment" contenteditable="true">Request data from MOL (city roads) or DRSI (state roads) separately. Inductive loops count vehicles only — no modal split. <a class="ref-link" href="https://www.gov.si/en/state-authorities/bodies-within-ministries/directorate-for-infrastructure/" target="_blank">↗ DRSI</a></td>
+    </tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag purple"></div><span contenteditable="true">Traffic — Telraam (WeCount)</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">WeCount · southern ring road<br><a class="viewer-link" href="https://telraam.net/en/map" target="_blank">↗ Telraam map</a></td>
+      <td class="resolution" contenteditable="true">Segment · hourly · daytime</td>
+      <td class="role" contenteditable="true">Modal split obs. — car / bike / pedestrian</td>
+      <td contenteditable="true"><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">LSTM</span>Dnevni ritem · daytime only</td>
+      <td class="comment" contenteditable="true">WeCount project covered southern ring road. Daytime only (camera-based). Unique value: gives car/bike/pedestrian split — useful for emission type differentiation. <a class="ref-link" href="https://doi.org/10.1016/j.dib.2022.107895" target="_blank">↗ Berčič et al. 2022</a></td>
+    </tr>
+
+    <tr class="group-row"><td colspan="7" contenteditable="true">Mobility / trip flows</td></tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag purple"></div><span contenteditable="true">Road speeds + travel times</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">Google Roads Management Insights<br><a class="viewer-link" href="https://developers.google.com/maps/documentation/roads-management-insights" target="_blank">↗ RMI dokumentacija</a></td>
+      <td class="resolution" contenteditable="true">Segment · 2-min · historično</td>
+      <td class="role" contenteditable="true">Agregatne hitrosti · peak hour detekcija · prometni vzorci</td>
+      <td contenteditable="true"><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">LSTM</span>Časovne serije po odsekih · dnevni ritem</td>
+      <td class="comment" contenteditable="true">Komercialen produkt (Google Maps Platform, avgust 2025). Agregiran in anonimiziran. Pokriva celotno cestno mrežo LJ. Podatki v BigQuery. Zahteva individualno pogodbo z Google — primerno za institucionalno partnerstvo ali research licenco. <a class="ref-link" href="https://mapsplatform.google.com/resources/blog/roads-management-insights-is-now-available-build-safer-smarter-and-more-efficient-road-networks/" target="_blank">↗ RMI blog post</a></td>
+    </tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag purple"></div><span contenteditable="true">OD matrike / trip flows</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">TomTom Move · HERE</td>
+      <td class="resolution" contenteditable="true">Segment / OD par · agregatno</td>
+      <td class="role" contenteditable="true">Izvorno-ciljni tokovi · mobilnostni vzorci</td>
+      <td contenteditable="true"><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">GNN</span>Graf odvisnosti med conami · OD matrika</td>
+      <td class="comment" contenteditable="true">Komercialen produkt — TomTom Move in HERE agregirani OD podatki. Relevantni za contrastive learning (mobilnostni "view"). Zahteva licenco — preveriti ali ima UL/IJS obstoječe partnerstvo.</td>
+    </tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag purple"></div><span contenteditable="true">Mobilnostni podatki — mobilno omrežje</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">Telekom Slovenije · agregatni</td>
+      <td class="resolution" contenteditable="true">Celica · urno · agregatno</td>
+      <td class="role" contenteditable="true">Population flows · dnevna prisotnost po conah</td>
+      <td contenteditable="true"><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">Transformer</span>Dolge sekvence · prostorsko-časovni vzorci</td>
+      <td class="comment" contenteditable="true">Agregatni mobilnostni podatki iz mobilnega omrežja — najbližji ekvivalent LBSN podatkom iz Xi et al. za LJ. Dostop samo za institucionalne partnerje. Najboljši kandidat za contrastive learning mobility view.</td>
+    </tr>
+
+    <tr class="group-row"><td colspan="7" contenteditable="true">Population</td></tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag gray"></div><span contenteditable="true">Population density</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">SURS · 100×100m grid<br><a class="viewer-link" href="https://www.stat.si/statweb/en/Home" target="_blank">↗ SURS open data</a></td>
+      <td class="resolution" contenteditable="true">100m · census</td>
+      <td class="role" contenteditable="true">Static prior · zone exposure weight</td>
+      <td contenteditable="true"><span class="badge badge-static">Static</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">MLP</span>Statičen skalar · brez časovne dimenzije</td>
+      <td class="comment" contenteditable="true">Use as zone exposure weight — zones with higher population density should receive higher weight in heat risk outputs. Not a dynamic observation; enter as static prior only. <a class="ref-link" href="https://www.stat.si/statweb/en/Home" target="_blank">↗ SURS</a></td>
+    </tr>
+
+    <tr class="group-row"><td colspan="7" contenteditable="true">Greenery / canopy</td></tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag green"></div><span contenteditable="true">NDVI — vegetation index</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">Landsat 8/9 · B4/B5 bands<br><a class="viewer-link" href="https://livingatlas.arcgis.com/landsatexplorer/" target="_blank">↗ ArcGIS Landsat Explorer</a></td>
+      <td class="resolution" contenteditable="true">30m · 8-day</td>
+      <td class="role" contenteditable="true">Co-observation with LST · seasonal signal</td>
+      <td contenteditable="true"><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">Transformer</span>Dolge sezonske serije · kot LST anomalija</td>
+      <td class="comment" contenteditable="true">Strongly seasonal — deciduous areas drop to 0.05–0.15 in winter. Use anomaly not raw values. Distinguishes photosynthetically active surfaces but cannot detect tree height. <a class="ref-link" href="https://www.usgs.gov/landsat-missions/landsat-normalized-difference-vegetation-index" target="_blank">↗ USGS NDVI</a></td>
+    </tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag green"></div><span contenteditable="true">Vegetation height — 10m</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">ETH Zurich · Lang et al. 2023<br><a class="viewer-link" href="https://nlang.users.earthengine.app/view/global-canopy-height-2020" target="_blank">↗ GEE canopy viewer</a>&nbsp;&nbsp;<a class="viewer-link" href="https://www.arcgis.com/home/item.html?id=2a3dfb00c2c6425f85bd70da420d58eb" target="_blank">↗ ArcGIS Living Atlas</a></td>
+      <td class="resolution" contenteditable="true">10m · 2020 · static</td>
+      <td class="role" contenteditable="true">Continuous veg. height · trees + low veg · zone structural prior</td>
+      <td contenteditable="true"><span class="badge badge-static">Static</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">CNN</span>Prostorski raster · lokalna struktura</td>
+      <td class="comment" contenteditable="true">Dark green = tall forest (Rožnik, Šišenski hrib, 15–50m). Olive-yellow = low veg / fields (1–5m). White = buildings masked. Not purely trees — includes all vegetation height. <a class="ref-link" href="https://doi.org/10.1038/s41559-023-02206-6" target="_blank">↗ Lang et al. 2023</a></td>
+    </tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag green"></div><span contenteditable="true">Tree canopy height — 1m</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">Meta / WRI · 2020<br><a class="viewer-link" href="https://meta-forest-monitoring-okw37.projects.earthengine.app/view/canopyheight" target="_blank">↗ Meta canopy viewer</a></td>
+      <td class="resolution" contenteditable="true">1m · 2018–2020 · static</td>
+      <td class="role" contenteditable="true">Individual tree detection · high-res canopy cover %</td>
+      <td contenteditable="true"><span class="badge badge-static">Static</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">CNN</span>Prostorski raster · visoka resolucija</td>
+      <td class="comment" contenteditable="true">1m resolution allows individual tree crown detection. Best for computing exact canopy cover % per zone. Use ETH for height values, Meta for fine-grained cover mapping. <a class="ref-link" href="https://doi.org/10.1016/j.rse.2023.113888" target="_blank">↗ Tolan et al. 2024</a></td>
+    </tr>
+
+    <tr class="group-row"><td colspan="7" contenteditable="true">Morphology</td></tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag teal"></div><span contenteditable="true">Building footprints — official</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">GURS · Kataster nepremičnin<br><a class="viewer-link" href="https://ipi.eprostor.gov.si/jv/" target="_blank">↗ eProStor JV viewer</a></td>
+      <td class="resolution" contenteditable="true">Parcel · static · CC BY</td>
+      <td class="role" contenteditable="true">Ground truth footprints · building type + use</td>
+      <td contenteditable="true"><span class="badge badge-static">Static</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">MLP</span>Statični vektorski atributi per zona</td>
+      <td class="comment" contenteditable="true">Most accurate source for Slovenia — parcel-level, nationally maintained. Free CC BY. Building cadastre merged into unified real estate cadastre in May 2022. <a class="ref-link" href="https://egp.gu.gov.si/egp/?lang=en" target="_blank">↗ egp.gu.gov.si</a></td>
+    </tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag teal"></div><span contenteditable="true">Building footprints + heights</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">EUBUCCO v1 · zenodo.7225259<br><a class="viewer-link" href="https://eubucco.com/data/map" target="_blank">↗ EUBUCCO map explorer</a></td>
+      <td class="resolution" contenteditable="true">Per building · EU-wide</td>
+      <td class="role" contenteditable="true">Heights (74% coverage) · type · construction year</td>
+      <td contenteditable="true"><span class="badge badge-static">Static</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">MLP</span>Statični zonal stats per hexagon</td>
+      <td class="comment" contenteditable="true">74% height coverage. Includes building type and construction year. Use GURS cadastre as independent ground truth check. <a class="ref-link" href="https://doi.org/10.1038/s41597-023-02040-2" target="_blank">↗ Milojevic-Dupont et al. 2023</a></td>
+    </tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag teal"></div><span contenteditable="true">Building heights — raster</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">Copernicus Urban Atlas BH 2012 v3<br><a class="viewer-link" href="https://land.copernicus.eu/en/products/urban-atlas/building-height-2012" target="_blank">↗ CLMS Building Height viewer</a></td>
+      <td class="resolution" contenteditable="true">10m raster · 2012</td>
+      <td class="role" contenteditable="true">DSM−DTM nDSM · continuous height field · SVF input</td>
+      <td contenteditable="true"><span class="badge badge-static">Static</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">CNN</span>Prostorski raster · SVF izračun</td>
+      <td class="comment" contenteditable="true">2012 vintage — cross-validate with EUBUCCO for areas with significant development since. Best for continuous SVF computation across the whole city grid. <a class="ref-link" href="https://land.copernicus.eu/en/products/urban-atlas/building-height-2012" target="_blank">↗ CLMS Urban Atlas BH</a></td>
+    </tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag teal"></div><span contenteditable="true">Building heights — zonal</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">EUBUCCO v1 → zonal stats<br><a class="viewer-link" href="https://eubucco.com/data" target="_blank">↗ EUBUCCO download</a></td>
+      <td class="resolution" contenteditable="true">Zone aggregate</td>
+      <td class="role" contenteditable="true">Mean height · variance · H/W canyon ratio · SVF input</td>
+      <td contenteditable="true"><span class="badge badge-static">Static</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">MLP</span>Statični skalarni agregati per zona</td>
+      <td class="comment" contenteditable="true">Derive per custom zone: mean height, std dev, H/W street canyon ratio, building coverage ratio. These feed directly into sky view factor (SVF) calculation.</td>
+    </tr>
+
+    <tr class="group-row"><td colspan="7" contenteditable="true">Emissions / air quality</td></tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag amber"></div><span contenteditable="true">NO₂, PM2.5, O₃</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">Copernicus CAMS · reanalysis<br><a class="viewer-link" href="https://atmosphere.copernicus.eu/charts/cams" target="_blank">↗ CAMS charts viewer</a></td>
+      <td class="resolution" contenteditable="true">~10km · hourly</td>
+      <td class="role" contenteditable="true">Observation (city scale) · regime co-indicator</td>
+      <td contenteditable="true"><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">LSTM</span>Urne serije · mestno ozadje</td>
+      <td class="comment" contenteditable="true">~10km resolution — too coarse to distinguish Ljubljana neighbourhoods. Use as city-wide background signal. Combine with Sentinel-5P for spatial pattern. <a class="ref-link" href="https://atmosphere.copernicus.eu/data" target="_blank">↗ CAMS data access</a></td>
+    </tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag amber"></div><span contenteditable="true">NO₂ column (satellite)</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">Sentinel-5P TROPOMI<br><a class="viewer-link" href="https://browser.dataspace.copernicus.eu/" target="_blank">↗ Copernicus Browser</a></td>
+      <td class="resolution" contenteditable="true">3.5×5.5km · daily</td>
+      <td class="role" contenteditable="true">Tropospheric NO₂ · traffic emission proxy</td>
+      <td contenteditable="true"><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">Transformer</span>Dnevne serije · sezonski vzorci</td>
+      <td class="comment" contenteditable="true">3.5×5.5km pixel — covers Ljubljana as ~4–6 pixels. Good for detecting traffic-driven NO₂ patterns at city scale. <a class="ref-link" href="https://browser.dataspace.copernicus.eu/" target="_blank">↗ Copernicus Browser</a></td>
+    </tr>
+
+    <tr class="group-row"><td colspan="7" contenteditable="true">Suggested additions</td></tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag pink"></div><span contenteditable="true">POI density / mix</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">OpenStreetMap<br><a class="viewer-link" href="https://www.openstreetmap.org/#map=13/46.0569/14.5058" target="_blank">↗ OSM Ljubljana</a></td>
+      <td class="resolution" contenteditable="true">Point → kernel density</td>
+      <td class="role" contenteditable="true">Urban function prior · land use character</td>
+      <td contenteditable="true"><span class="badge badge-static">Static</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">MLP</span>Statični multi-dim vektor per zona</td>
+      <td class="comment" contenteditable="true">Compute kernel density per POI category (retail, food, transport, office). High mixed-use density = urban core signature. Derive in Python with OSMnx. <a class="ref-link" href="https://doi.org/10.1007/s41651-017-0009-6" target="_blank">↗ Boeing 2017 OSMnx</a></td>
+    </tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag pink"></div><span contenteditable="true">Impervious surface %</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">Copernicus HRL · 2018 + 2021<br><a class="viewer-link" href="https://land.copernicus.eu/en/products/high-resolution-layer-imperviousness" target="_blank">↗ Copernicus Land HRL</a></td>
+      <td class="resolution" contenteditable="true">10m · static</td>
+      <td class="role" contenteditable="true">LST amplifier prior · surface sealing index</td>
+      <td contenteditable="true"><span class="badge badge-static">Static</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">CNN</span>Prostorski raster · ali zonal MLP</td>
+      <td class="comment" contenteditable="true">Strongest single predictor of LST elevation. Available for 2018 and 2021. Do NOT use ESRI Sentinel-2 land cover — misclassifies bare fields as built. <a class="ref-link" href="https://land.copernicus.eu/en/products/high-resolution-layer-imperviousness" target="_blank">↗ Copernicus HRL</a></td>
+    </tr>
+    <tr class="data-row" onclick="selectRow(this)">
+      <td><div class="layer-name"><div class="color-tag pink"></div><span contenteditable="true">Google Popular Times</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+      <td class="source" contenteditable="true">Google Maps Places API (neoficialno)</td>
+      <td class="resolution" contenteditable="true">POI · urno · tipični tednik</td>
+      <td class="role" contenteditable="true">Proxy za LBSN check-in signal · zasedenost servisov</td>
+      <td contenteditable="true"><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder" contenteditable="true"><span class="badge badge-encoder">LSTM</span>Urni vzorec zasedenosti · dnevni ritem per POI</td>
+      <td class="comment" contenteditable="true">Tipična zasedenost lokalov, trgovin, pisarn po urah (skala 1–100). Agregatni, anonimizirani podatki iz Google Maps Location History. Ni uradnega API-ja — dostop prek knjižnic (populartimes, LivePopularTimes) ali plačljivih scraperjev (Outscraper, SearchAPI). Akademsko pogosto uporabljen kot LBSN proxy. Za LJ pokriva večino večjih POI-jev.</td>
+    </tr>
+
+  </tbody>
+</table>
+
+<button class="add-row-btn" onclick="addNewRow()">+ add new row</button>
+
+<footer>
+  <span contenteditable="true">Ljubljana SSHMM · Candidate layer inventory · Urban typology study · 2024–2026</span>
+  <span>Static = structural prior &nbsp;·&nbsp; Dynamic = observation sequence &nbsp;·&nbsp; Final layer selection TBD</span>
+</footer>
+
+<script>
+let selectedRow = null;
+
+// On load: merge type+encoder cells and fix colspans
+document.addEventListener('DOMContentLoaded', () => {
+  // Fix group-row colspans 7 → 6
+  document.querySelectorAll('.group-row td[colspan="7"]').forEach(td => td.setAttribute('colspan','6'));
+
+  // Merge type + encoder cells for each data row
+  document.querySelectorAll('tr.data-row').forEach(row => {
+    const cells = row.querySelectorAll('td');
+    if (cells.length === 7) {
+      const typeTd = cells[4];
+      const encoderTd = cells[5];
+      // extract encoder badge text
+      const encBadge = encoderTd.querySelector('.badge-encoder');
+      if (encBadge) {
+        typeTd.appendChild(encBadge);
+      }
+      encoderTd.remove();
+    }
+  });
+});
+
+function selectRow(row) {
+  if (selectedRow) selectedRow.classList.remove('selected');
+  selectedRow = row;
+  row.classList.add('selected');
+}
+
+function deleteRow(btn) {
+  event.stopPropagation();
+  const row = btn.closest('tr');
+  if (confirm('Delete this row?')) row.remove();
+}
+
+function duplicateRow(btn) {
+  event.stopPropagation();
+  const row = btn.closest('tr');
+  const clone = row.cloneNode(true);
+  row.parentNode.insertBefore(clone, row.nextSibling);
+}
+
+function clearSelected() {
+  if (selectedRow && confirm('Delete selected row?')) {
+    selectedRow.remove();
+    selectedRow = null;
+  }
+}
+
+function addNewRow() {
+  const tbody = document.getElementById('table-body');
+  const newRow = document.createElement('tr');
+  newRow.className = 'data-row';
+  newRow.setAttribute('onclick', 'selectRow(this)');
+  newRow.innerHTML = `
+    <td><div class="layer-name"><div class="color-tag gray"></div><span contenteditable="true">New layer</span></div><div class="row-actions"><button class="row-btn" onclick="duplicateRow(this)">copy</button><button class="row-btn row-btn-del" onclick="deleteRow(this)">delete</button></div></td>
+    <td class="source" contenteditable="true">Source</td>
+    <td class="resolution" contenteditable="true">Resolution</td>
+    <td class="role" contenteditable="true">Role in HMM</td>
+    <td contenteditable="true"><span class="badge badge-dynamic">Dynamic</span><span class="badge badge-encoder">MLP</span></td>
+    <td class="comment" contenteditable="true">Comment</td>`;
+  tbody.appendChild(newRow);
+  newRow.querySelector('[contenteditable]').focus();
+}
+
+function addNewGroup() {
+  const tbody = document.getElementById('table-body');
+  const newGroup = document.createElement('tr');
+  newGroup.className = 'group-row';
+  newGroup.innerHTML = '<td colspan="6" contenteditable="true">New group</td>';
+  tbody.appendChild(newGroup);
+  newGroup.querySelector('[contenteditable]').focus();
+}
+
+function exportHTML() {
+  const html = '<!DOCTYPE html>\n<html lang="en">\n' + document.documentElement.innerHTML + '\n</html>';
+  const blob = new Blob([html], {type: 'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ljubljana_hmm_inventory_edited.html';
+  a.click();
+  const ind = document.getElementById('save-indicator');
+  ind.textContent = '✓ downloaded';
+  ind.classList.add('show');
+  setTimeout(() => ind.classList.remove('show'), 2000);
+}
+</script>
+</body>
+</html>
