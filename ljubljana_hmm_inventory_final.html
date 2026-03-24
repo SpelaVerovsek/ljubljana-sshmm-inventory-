@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ljubljana SSHMM — Candidate Layer Inventory</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --bg2: #181c27; --bg3: #1e2333;
+    --border: rgba(255,255,255,0.08); --text: #e8eaf0; --muted: #7a7f94;
+    --coral: #e8724a; --blue: #4a9edd; --purple: #8b6fd4;
+    --green: #5daa6e; --teal: #3dbfa0; --amber: #d4953a;
+    --pink: #d46b8e; --gray: #6b7080;
+  }
+  html { background: #0f1117; }
+  body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; line-height: 1.5; padding: 32px; min-height: 100vh; }
+
+
+  header { margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+  h1 { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 12px; font-family: 'IBM Plex Mono', monospace; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-bottom: 20px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  .badge { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.3px; white-space: nowrap; }
+  .badge-dynamic { background: rgba(94,154,255,0.12); color: #7ab4f5; border: 1px solid rgba(94,154,255,0.2); }
+  .badge-static  { background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid var(--border); }
+  .badge-encoder { background: rgba(61,191,160,0.12); color: #3dbfa0; border: 1px solid rgba(61,191,160,0.25); font-size: 9px; margin-left: 5px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  .group-row td { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); padding: 14px 12px 5px; border-bottom: 1px solid var(--border); }
+  tbody tr.data-row { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr.data-row:hover { background: var(--bg2); }
+  tbody tr.data-row.selected { background: rgba(61,191,160,0.06); outline: 1px solid rgba(61,191,160,0.2); }
+  td { padding: 8px 12px; vertical-align: top; }
+
+  .layer-name { font-weight: 500; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .color-tag { width: 3px; height: 28px; border-radius: 2px; flex-shrink: 0; }
+  .coral { background: var(--coral); } .blue { background: var(--blue); } .purple { background: var(--purple); }
+  .green { background: var(--green); } .teal { background: var(--teal); } .amber { background: var(--amber); }
+  .pink { background: var(--pink); } .gray { background: var(--gray); }
+
+  .source { color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+  .resolution { color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+  .role { color: #a8b0c8; font-size: 12px; }
+  .encoder { font-size: 11px; color: var(--muted); }
+  .comment { color: #8a90a8; font-size: 11px; line-height: 1.6; }
+
+  .viewer-link { display: inline-block; margin-top: 3px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #58b4f0; text-decoration: none; border-bottom: 1px dashed rgba(88,180,240,0.4); transition: color 0.15s; }
+  .viewer-link:hover { color: #90d0ff; }
+  .ref-link { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #58b4f0; text-decoration: none; border-bottom: 1px dashed rgba(88,180,240,0.3); }
+  .ref-link:hover { color: #90d0ff; }
+
+  /* Editable cells */
+
+  tr.data-row:hover .row-actions { display: flex; }
+
+  .add-row-btn:hover { color: #3dbfa0; border-color: rgba(61,191,160,0.3); background: rgba(61,191,160,0.05); }
+
+  footer { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+</style>
+</head>
+<body>
+
+
+<header>
+  <h1>Ljubljana SSHMM — Candidate Layer Inventory</h1>
+  <div class="subtitle">Potential input layers for State-Sharing Hidden Markov Model · Urban typology study · Selection TBD</div>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--coral)"></div>Thermal</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Air temperature</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Traffic / Mobility</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--gray)"></div>Population</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Greenery / canopy</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--teal)"></div>Morphology</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Emissions / AQ</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--pink)"></div>Suggested addition</div>
+</div>
+
+<table id="main-table">
+  <thead>
+    <tr>
+      <th style="width:15%">Layer</th>
+      <th style="width:15%">Source</th>
+      <th style="width:10%">Resolution</th>
+      <th style="width:18%">Role in HMM</th>
+      <th style="width:12%">Type (suggested encoder)</th>
+      <th style="width:30%">Additional comment</th>
+    </tr>
+  </thead>
+  <tbody id="table-body">
+
+    <tr class="group-row"><td colspan="7">Thermal</td></tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag coral"></div><span>Surface temp (LST)</span></div></td>
+      <td class="source">Landsat 8/9 L2 · ST_B10<br><a class="viewer-link" href="https://livingatlas.arcgis.com/landsat-surface-temp/" target="_blank">↗ ArcGIS LST Explorer</a></td>
+      <td class="resolution">30m · 8-day</td>
+      <td class="role">Primary observation · monthly anomaly + variance</td>
+      <td><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder"><span class="badge badge-encoder">Transformer</span>Dolge časovne serije · sezonske odvisnosti</td>
+      <td class="comment">Daytime overpass ~10:00 AM local. Use anomaly (observed − monthly climatology) not raw °C to remove seasonal cycle. <a class="ref-link" href="https://www.usgs.gov/landsat-missions/landsat-collection-2-level-2-science-products" target="_blank">↗ USGS L2 Science Products</a></td>
+    </tr>
+
+    <tr class="group-row"><td colspan="7">Air temperature</td></tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag blue"></div><span>Air temp — official</span></div></td>
+      <td class="source">ARSO · Bežigrad + Brnik<br><a class="viewer-link" href="https://meteo.arso.gov.si/met/sl/app/webmet/" target="_blank">↗ ARSO meteo portal</a></td>
+      <td class="resolution">Point · hourly</td>
+      <td class="role">Ground truth · LST offset calibration</td>
+      <td><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder"><span class="badge badge-encoder">LSTM</span>Kratke lokalne odvisnosti · dnevni ritem</td>
+      <td class="comment">Only 2 stations in/near Ljubljana. Bežigrad is the long-term reference (since 1948). Use for LST→air temp offset calibration and as HMM validation anchor. <a class="ref-link" href="https://meteo.arso.gov.si" target="_blank">↗ ARSO</a></td>
+    </tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag blue"></div><span>Air temp — crowdsourced</span></div></td>
+      <td class="source">Netatmo · EUMETNET/CEDA<br><a class="viewer-link" href="https://weathermap.netatmo.com/" target="_blank">↗ Netatmo Weather Map</a></td>
+      <td class="resolution">~100–300m · 5-min</td>
+      <td class="role">Urban canopy layer obs. · spatial interpolation</td>
+      <td><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder"><span class="badge badge-encoder">LSTM</span>Kratke lokalne odvisnosti · dnevni ritem</td>
+      <td class="comment">Slovenia confirmed in EUMETNET archive. Needs QC filtering — sensors placed near heat sources give biased readings. Dense enough in Ljubljana for spatial interpolation. <a class="ref-link" href="https://catalogue.ceda.ac.uk/uuid/e8793d74a651426692faa100e3b2acd3/" target="_blank">↗ EUMETNET/CEDA archive</a></td>
+    </tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag blue"></div><span>Veter — hitrost in smer</span></div></td>
+      <td class="source">ARSO · Bežigrad + Brnik + ERA5</td>
+      <td class="resolution">Point · hourly · ~30km ERA5</td>
+      <td class="role">Disperzija onesnaženosti · UHI modulacija · inverzija</td>
+      <td><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder"><span class="badge badge-encoder">LSTM</span>Urne serije · smer + hitrost kot 2D vektor</td>
+      <td class="comment">Ključen za razumevanje disperzije PM in NO₂ — šibak veter + inverzija = akumulacija v kotlini. Bežigrad meri od leta 1948. ERA5 pokrije prostorsko porazdelitev. Smer vnesite kot sin/cos komponenti, ne kot kot v stopinjah.</td>
+    </tr>
+
+    <tr class="group-row"><td colspan="7">Traffic</td></tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag purple"></div><span>Traffic — official (ILC)</span></div></td>
+      <td class="source">DRSI / MOL · inductive loops</td>
+      <td class="resolution">Point · hourly</td>
+      <td class="role">Primary observation · AM/PM peak signal</td>
+      <td><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder"><span class="badge badge-encoder">LSTM</span>Dnevni ritem · 2 konici · kratke odvisnosti</td>
+      <td class="comment">Request data from MOL (city roads) or DRSI (state roads) separately. Inductive loops count vehicles only — no modal split. <a class="ref-link" href="https://www.gov.si/en/state-authorities/bodies-within-ministries/directorate-for-infrastructure/" target="_blank">↗ DRSI</a></td>
+    </tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag purple"></div><span>Traffic — Telraam (WeCount)</span></div></td>
+      <td class="source">WeCount · southern ring road<br><a class="viewer-link" href="https://telraam.net/en/map" target="_blank">↗ Telraam map</a></td>
+      <td class="resolution">Segment · hourly · daytime</td>
+      <td class="role">Modal split obs. — car / bike / pedestrian</td>
+      <td><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder"><span class="badge badge-encoder">LSTM</span>Dnevni ritem · daytime only</td>
+      <td class="comment">WeCount project covered southern ring road. Daytime only (camera-based). Unique value: gives car/bike/pedestrian split — useful for emission type differentiation. <a class="ref-link" href="https://doi.org/10.1016/j.dib.2022.107895" target="_blank">↗ Berčič et al. 2022</a></td>
+    </tr>
+
+    <tr class="group-row"><td colspan="7">Mobility / trip flows</td></tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag purple"></div><span>Road speeds + travel times</span></div></td>
+      <td class="source">Google Roads Management Insights<br><a class="viewer-link" href="https://developers.google.com/maps/documentation/roads-management-insights" target="_blank">↗ RMI dokumentacija</a></td>
+      <td class="resolution">Segment · 2-min · historično</td>
+      <td class="role">Agregatne hitrosti · peak hour detekcija · prometni vzorci</td>
+      <td><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder"><span class="badge badge-encoder">LSTM</span>Časovne serije po odsekih · dnevni ritem</td>
+      <td class="comment">Komercialen produkt (Google Maps Platform, avgust 2025). Agregiran in anonimiziran. Pokriva celotno cestno mrežo LJ. Podatki v BigQuery. Zahteva individualno pogodbo z Google — primerno za institucionalno partnerstvo ali research licenco. <a class="ref-link" href="https://mapsplatform.google.com/resources/blog/roads-management-insights-is-now-available-build-safer-smarter-and-more-efficient-road-networks/" target="_blank">↗ RMI blog post</a></td>
+    </tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag purple"></div><span>OD matrike / trip flows</span></div></td>
+      <td class="source">TomTom Move · HERE</td>
+      <td class="resolution">Segment / OD par · agregatno</td>
+      <td class="role">Izvorno-ciljni tokovi · mobilnostni vzorci</td>
+      <td><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder"><span class="badge badge-encoder">GNN</span>Graf odvisnosti med conami · OD matrika</td>
+      <td class="comment">Komercialen produkt — TomTom Move in HERE agregirani OD podatki. Relevantni za contrastive learning (mobilnostni "view"). Zahteva licenco — preveriti ali ima UL/IJS obstoječe partnerstvo.</td>
+    </tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag purple"></div><span>Mobilnostni podatki — mobilno omrežje</span></div></td>
+      <td class="source">Telekom Slovenije · agregatni</td>
+      <td class="resolution">Celica · urno · agregatno</td>
+      <td class="role">Population flows · dnevna prisotnost po conah</td>
+      <td><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder"><span class="badge badge-encoder">Transformer</span>Dolge sekvence · prostorsko-časovni vzorci</td>
+      <td class="comment">Agregatni mobilnostni podatki iz mobilnega omrežja — najbližji ekvivalent LBSN podatkom iz Xi et al. za LJ. Dostop samo za institucionalne partnerje. Najboljši kandidat za contrastive learning mobility view.</td>
+    </tr>
+
+    <tr class="group-row"><td colspan="7">Population</td></tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag gray"></div><span>Population density</span></div></td>
+      <td class="source">SURS · 100×100m grid<br><a class="viewer-link" href="https://www.stat.si/statweb/en/Home" target="_blank">↗ SURS open data</a></td>
+      <td class="resolution">100m · census</td>
+      <td class="role">Static prior · zone exposure weight</td>
+      <td><span class="badge badge-static">Static</span></td>
+      <td class="encoder"><span class="badge badge-encoder">MLP</span>Statičen skalar · brez časovne dimenzije</td>
+      <td class="comment">Use as zone exposure weight — zones with higher population density should receive higher weight in heat risk outputs. Not a dynamic observation; enter as static prior only. <a class="ref-link" href="https://www.stat.si/statweb/en/Home" target="_blank">↗ SURS</a></td>
+    </tr>
+
+    <tr class="group-row"><td colspan="7">Greenery / canopy</td></tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag green"></div><span>NDVI — vegetation index</span></div></td>
+      <td class="source">Landsat 8/9 · B4/B5 bands<br><a class="viewer-link" href="https://livingatlas.arcgis.com/landsatexplorer/" target="_blank">↗ ArcGIS Landsat Explorer</a></td>
+      <td class="resolution">30m · 8-day</td>
+      <td class="role">Co-observation with LST · seasonal signal</td>
+      <td><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder"><span class="badge badge-encoder">Transformer</span>Dolge sezonske serije · kot LST anomalija</td>
+      <td class="comment">Strongly seasonal — deciduous areas drop to 0.05–0.15 in winter. Use anomaly not raw values. Distinguishes photosynthetically active surfaces but cannot detect tree height. <a class="ref-link" href="https://www.usgs.gov/landsat-missions/landsat-normalized-difference-vegetation-index" target="_blank">↗ USGS NDVI</a></td>
+    </tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag green"></div><span>Vegetation height — 10m</span></div></td>
+      <td class="source">ETH Zurich · Lang et al. 2023<br><a class="viewer-link" href="https://nlang.users.earthengine.app/view/global-canopy-height-2020" target="_blank">↗ GEE canopy viewer</a>&nbsp;&nbsp;<a class="viewer-link" href="https://www.arcgis.com/home/item.html?id=2a3dfb00c2c6425f85bd70da420d58eb" target="_blank">↗ ArcGIS Living Atlas</a></td>
+      <td class="resolution">10m · 2020 · static</td>
+      <td class="role">Continuous veg. height · trees + low veg · zone structural prior</td>
+      <td><span class="badge badge-static">Static</span></td>
+      <td class="encoder"><span class="badge badge-encoder">CNN</span>Prostorski raster · lokalna struktura</td>
+      <td class="comment">Dark green = tall forest (Rožnik, Šišenski hrib, 15–50m). Olive-yellow = low veg / fields (1–5m). White = buildings masked. Not purely trees — includes all vegetation height. <a class="ref-link" href="https://doi.org/10.1038/s41559-023-02206-6" target="_blank">↗ Lang et al. 2023</a></td>
+    </tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag green"></div><span>Tree canopy height — 1m</span></div></td>
+      <td class="source">Meta / WRI · 2020<br><a class="viewer-link" href="https://meta-forest-monitoring-okw37.projects.earthengine.app/view/canopyheight" target="_blank">↗ Meta canopy viewer</a></td>
+      <td class="resolution">1m · 2018–2020 · static</td>
+      <td class="role">Individual tree detection · high-res canopy cover %</td>
+      <td><span class="badge badge-static">Static</span></td>
+      <td class="encoder"><span class="badge badge-encoder">CNN</span>Prostorski raster · visoka resolucija</td>
+      <td class="comment">1m resolution allows individual tree crown detection. Best for computing exact canopy cover % per zone. Use ETH for height values, Meta for fine-grained cover mapping. <a class="ref-link" href="https://doi.org/10.1016/j.rse.2023.113888" target="_blank">↗ Tolan et al. 2024</a></td>
+    </tr>
+
+    <tr class="group-row"><td colspan="7">Morphology</td></tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag teal"></div><span>Building footprints — official</span></div></td>
+      <td class="source">GURS · Kataster nepremičnin<br><a class="viewer-link" href="https://ipi.eprostor.gov.si/jv/" target="_blank">↗ eProStor JV viewer</a></td>
+      <td class="resolution">Parcel · static · CC BY</td>
+      <td class="role">Ground truth footprints · building type + use</td>
+      <td><span class="badge badge-static">Static</span></td>
+      <td class="encoder"><span class="badge badge-encoder">MLP</span>Statični vektorski atributi per zona</td>
+      <td class="comment">Most accurate source for Slovenia — parcel-level, nationally maintained. Free CC BY. Building cadastre merged into unified real estate cadastre in May 2022. <a class="ref-link" href="https://egp.gu.gov.si/egp/?lang=en" target="_blank">↗ egp.gu.gov.si</a></td>
+    </tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag teal"></div><span>Building footprints + heights</span></div></td>
+      <td class="source">EUBUCCO v1 · zenodo.7225259<br><a class="viewer-link" href="https://eubucco.com/data/map" target="_blank">↗ EUBUCCO map explorer</a></td>
+      <td class="resolution">Per building · EU-wide</td>
+      <td class="role">Heights (74% coverage) · type · construction year</td>
+      <td><span class="badge badge-static">Static</span></td>
+      <td class="encoder"><span class="badge badge-encoder">MLP</span>Statični zonal stats per hexagon</td>
+      <td class="comment">74% height coverage. Includes building type and construction year. Use GURS cadastre as independent ground truth check. <a class="ref-link" href="https://doi.org/10.1038/s41597-023-02040-2" target="_blank">↗ Milojevic-Dupont et al. 2023</a></td>
+    </tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag teal"></div><span>Building heights — raster</span></div></td>
+      <td class="source">Copernicus Urban Atlas BH 2012 v3<br><a class="viewer-link" href="https://land.copernicus.eu/en/products/urban-atlas/building-height-2012" target="_blank">↗ CLMS Building Height viewer</a></td>
+      <td class="resolution">10m raster · 2012</td>
+      <td class="role">DSM−DTM nDSM · continuous height field · SVF input</td>
+      <td><span class="badge badge-static">Static</span></td>
+      <td class="encoder"><span class="badge badge-encoder">CNN</span>Prostorski raster · SVF izračun</td>
+      <td class="comment">2012 vintage — cross-validate with EUBUCCO for areas with significant development since. Best for continuous SVF computation across the whole city grid. <a class="ref-link" href="https://land.copernicus.eu/en/products/urban-atlas/building-height-2012" target="_blank">↗ CLMS Urban Atlas BH</a></td>
+    </tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag teal"></div><span>Building heights — zonal</span></div></td>
+      <td class="source">EUBUCCO v1 → zonal stats<br><a class="viewer-link" href="https://eubucco.com/data" target="_blank">↗ EUBUCCO download</a></td>
+      <td class="resolution">Zone aggregate</td>
+      <td class="role">Mean height · variance · H/W canyon ratio · SVF input</td>
+      <td><span class="badge badge-static">Static</span></td>
+      <td class="encoder"><span class="badge badge-encoder">MLP</span>Statični skalarni agregati per zona</td>
+      <td class="comment">Derive per custom zone: mean height, std dev, H/W street canyon ratio, building coverage ratio. These feed directly into sky view factor (SVF) calculation.</td>
+    </tr>
+
+    <tr class="group-row"><td colspan="7">Emissions / air quality</td></tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag amber"></div><span>NO₂, PM2.5, O₃</span></div></td>
+      <td class="source">Copernicus CAMS · reanalysis<br><a class="viewer-link" href="https://atmosphere.copernicus.eu/charts/cams" target="_blank">↗ CAMS charts viewer</a></td>
+      <td class="resolution">~10km · hourly</td>
+      <td class="role">Observation (city scale) · regime co-indicator</td>
+      <td><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder"><span class="badge badge-encoder">LSTM</span>Urne serije · mestno ozadje</td>
+      <td class="comment">~10km resolution — too coarse to distinguish Ljubljana neighbourhoods. Use as city-wide background signal. Combine with Sentinel-5P for spatial pattern. <a class="ref-link" href="https://atmosphere.copernicus.eu/data" target="_blank">↗ CAMS data access</a></td>
+    </tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag amber"></div><span>NO₂ column (satellite)</span></div></td>
+      <td class="source">Sentinel-5P TROPOMI<br><a class="viewer-link" href="https://browser.dataspace.copernicus.eu/" target="_blank">↗ Copernicus Browser</a></td>
+      <td class="resolution">3.5×5.5km · daily</td>
+      <td class="role">Tropospheric NO₂ · traffic emission proxy</td>
+      <td><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder"><span class="badge badge-encoder">Transformer</span>Dnevne serije · sezonski vzorci</td>
+      <td class="comment">3.5×5.5km pixel — covers Ljubljana as ~4–6 pixels. Good for detecting traffic-driven NO₂ patterns at city scale. <a class="ref-link" href="https://browser.dataspace.copernicus.eu/" target="_blank">↗ Copernicus Browser</a></td>
+    </tr>
+
+    <tr class="group-row"><td colspan="7">Suggested additions</td></tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag pink"></div><span>POI density / mix</span></div></td>
+      <td class="source">OpenStreetMap<br><a class="viewer-link" href="https://www.openstreetmap.org/#map=13/46.0569/14.5058" target="_blank">↗ OSM Ljubljana</a></td>
+      <td class="resolution">Point → kernel density</td>
+      <td class="role">Urban function prior · land use character</td>
+      <td><span class="badge badge-static">Static</span></td>
+      <td class="encoder"><span class="badge badge-encoder">MLP</span>Statični multi-dim vektor per zona</td>
+      <td class="comment">Compute kernel density per POI category (retail, food, transport, office). High mixed-use density = urban core signature. Derive in Python with OSMnx. <a class="ref-link" href="https://doi.org/10.1007/s41651-017-0009-6" target="_blank">↗ Boeing 2017 OSMnx</a></td>
+    </tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag pink"></div><span>Impervious surface %</span></div></td>
+      <td class="source">Copernicus HRL · 2018 + 2021<br><a class="viewer-link" href="https://land.copernicus.eu/en/products/high-resolution-layer-imperviousness" target="_blank">↗ Copernicus Land HRL</a></td>
+      <td class="resolution">10m · static</td>
+      <td class="role">LST amplifier prior · surface sealing index</td>
+      <td><span class="badge badge-static">Static</span></td>
+      <td class="encoder"><span class="badge badge-encoder">CNN</span>Prostorski raster · ali zonal MLP</td>
+      <td class="comment">Strongest single predictor of LST elevation. Available for 2018 and 2021. Do NOT use ESRI Sentinel-2 land cover — misclassifies bare fields as built. <a class="ref-link" href="https://land.copernicus.eu/en/products/high-resolution-layer-imperviousness" target="_blank">↗ Copernicus HRL</a></td>
+    </tr>
+    <tr class="data-row">
+      <td><div class="layer-name"><div class="color-tag pink"></div><span>Google Popular Times</span></div></td>
+      <td class="source">Google Maps Places API (neoficialno)</td>
+      <td class="resolution">POI · urno · tipični tednik</td>
+      <td class="role">Proxy za LBSN check-in signal · zasedenost servisov</td>
+      <td><span class="badge badge-dynamic">Dynamic</span></td>
+      <td class="encoder"><span class="badge badge-encoder">LSTM</span>Urni vzorec zasedenosti · dnevni ritem per POI</td>
+      <td class="comment">Tipična zasedenost lokalov, trgovin, pisarn po urah (skala 1–100). Agregatni, anonimizirani podatki iz Google Maps Location History. Ni uradnega API-ja — dostop prek knjižnic (populartimes, LivePopularTimes) ali plačljivih scraperjev (Outscraper, SearchAPI). Akademsko pogosto uporabljen kot LBSN proxy. Za LJ pokriva večino večjih POI-jev.</td>
+    </tr>
+
+  </tbody>
+</table>
+
+
+<footer>
+  <span>Ljubljana SSHMM · Candidate layer inventory · Urban typology study · 2024–2026</span>
+  <span>Static = structural prior &nbsp;·&nbsp; Dynamic = observation sequence &nbsp;·&nbsp; Final layer selection TBD</span>
+</footer>
+
+</body>
+</html>
