@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ljubljana SSHMM — Layer Snapshots</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --bg2: #181c27; --bg3: #1e2333;
+    --border: rgba(255,255,255,0.08); --text: #e8eaf0; --muted: #7a7f94;
+    --coral: #e8724a; --blue: #d4b84a; --purple: #8b6fd4;
+    --green: #5daa6e; --teal: #3dbfa0; --amber: #d4953a;
+    --pink: #d46b8e; --gray: #6b7080; --skyblue: #2ec4c4;
+  }
+  html { background: var(--bg); }
+  body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; line-height: 1.5; padding: 32px; min-height: 100vh; }
+  header { margin-bottom: 28px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+  h1 { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 12px; font-family: 'IBM Plex Mono', monospace; }
+  .back-link { display: inline-flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--teal); text-decoration: none; margin-bottom: 20px; border-bottom: 1px dashed rgba(61,191,160,0.4); }
+  .back-link:hover { color: #7de8d0; }
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
+  .filter-btn { padding: 4px 12px; border-radius: 3px; border: 1px solid var(--border); background: var(--bg2); color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 10px; cursor: pointer; transition: all 0.15s; letter-spacing: 0.4px; }
+  .filter-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+  .filter-btn.active { color: var(--text); border-color: rgba(255,255,255,0.3); background: var(--bg3); }
+  .filter-btn[data-cat="thermal"].active    { border-color: var(--coral);   color: var(--coral); }
+  .filter-btn[data-cat="air"].active        { border-color: var(--blue);    color: var(--blue); }
+  .filter-btn[data-cat="meteo"].active      { border-color: var(--skyblue); color: var(--skyblue); }
+  .filter-btn[data-cat="traffic"].active    { border-color: var(--purple);  color: var(--purple); }
+  .filter-btn[data-cat="mobility"].active   { border-color: var(--purple);  color: var(--purple); }
+  .filter-btn[data-cat="population"].active { border-color: var(--gray);    color: var(--gray); }
+  .filter-btn[data-cat="greenery"].active   { border-color: var(--green);   color: var(--green); }
+  .filter-btn[data-cat="morphology"].active { border-color: var(--teal);    color: var(--teal); }
+  .filter-btn[data-cat="emissions"].active  { border-color: var(--amber);   color: var(--amber); }
+  .filter-btn[data-cat="suggested"].active  { border-color: var(--pink);    color: var(--pink); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .group-label { grid-column: 1 / -1; font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); padding: 8px 0 4px; border-bottom: 1px solid var(--border); margin-top: 8px; }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; transition: border-color 0.15s, transform 0.15s; cursor: pointer; }
+  .card:hover { border-color: rgba(255,255,255,0.18); transform: translateY(-2px); }
+  .card-img-wrap { width: 100%; height: 190px; background: var(--bg3); border-bottom: 1px solid var(--border); overflow: hidden; }
+  .card-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .placeholder-inner { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+  .ph-dot { width: 36px; height: 36px; border-radius: 50%; border: 1px dashed rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; }
+  .ph-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); }
+  .add-btn { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--teal); border: 1px dashed rgba(61,191,160,0.3); border-radius: 3px; padding: 3px 10px; background: none; cursor: pointer; }
+  .add-btn:hover { background: rgba(61,191,160,0.08); }
+  .card-body { padding: 12px 14px; }
+  .card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .cdot { width: 6px; height: 6px; border-radius: 2px; flex-shrink: 0; }
+  .card-title { font-weight: 500; font-size: 13px; }
+  .card-src { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); margin-bottom: 5px; }
+  .card-desc { font-size: 11px; color: #8a90a8; line-height: 1.6; }
+  .card-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .badge { font-family: 'IBM Plex Mono', monospace; font-size: 9px; padding: 2px 7px; border-radius: 3px; display: inline-block; }
+  .dyn { background: rgba(94,154,255,0.12); color: #7ab4f5; border: 1px solid rgba(94,154,255,0.2); }
+  .sta { background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid var(--border); }
+  .enc { background: rgba(61,191,160,0.12); color: #3dbfa0; border: 1px solid rgba(61,191,160,0.25); }
+  .card-res { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); }
+  .lb { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 1000; align-items: center; justify-content: center; padding: 32px; }
+  .lb.open { display: flex; }
+  .lb-inner { max-width: 960px; width: 100%; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; position: relative; }
+  .lb-img { width: 100%; max-height: 58vh; object-fit: contain; background: var(--bg3); display: block; }
+  .lb-body { padding: 14px 18px; }
+  .lb-title { font-weight: 500; font-size: 14px; margin-bottom: 3px; }
+  .lb-src { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .lb-desc { font-size: 12px; color: #8a90a8; line-height: 1.6; }
+  .lb-x { position: absolute; top: 12px; right: 16px; background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; }
+  .lb-x:hover { color: var(--text); }
+  footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .hidden { display: none !important; }
+  .card-link { font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--teal); text-decoration: none; border-bottom: 1px dashed rgba(61,191,160,0.4); transition: color 0.15s; }
+  .card-link:hover { color: #7de8d0; }
+
+</style>
+</head>
+<body>
+
+<a class="back-link" href="ljubljana_hmm_inventory_in_progress.html">← inventory table</a>
+
+<header>
+  <h1>Ljubljana SSHMM — Layer Snapshots</h1>
+  <div class="subtitle">Geographical previews of candidate input layers · Ljubljana urban area</div>
+</header>
+
+<div class="legend" style="display:flex;flex-wrap:wrap;gap:8px 18px;margin-bottom:20px;">
+  <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;"><div style="width:8px;height:8px;border-radius:2px;background:var(--coral)"></div>Thermal</div>
+  <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;"><div style="width:8px;height:8px;border-radius:2px;background:var(--blue)"></div>Air temperature</div>
+  <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;"><div style="width:8px;height:8px;border-radius:2px;background:var(--skyblue)"></div>Other meteo parameters</div>
+  <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;"><div style="width:8px;height:8px;border-radius:2px;background:var(--purple)"></div>Traffic / Mobility</div>
+  <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;"><div style="width:8px;height:8px;border-radius:2px;background:var(--gray)"></div>Population</div>
+  <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;"><div style="width:8px;height:8px;border-radius:2px;background:var(--green)"></div>Greenery / canopy</div>
+  <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;"><div style="width:8px;height:8px;border-radius:2px;background:var(--teal)"></div>Morphology</div>
+  <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;"><div style="width:8px;height:8px;border-radius:2px;background:var(--amber)"></div>Emissions / AQ</div>
+  <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;"><div style="width:8px;height:8px;border-radius:2px;background:var(--pink)"></div>Suggested addition</div>
+</div>
+
+<div class="grid" id="grid">
+<div class="group-label" data-cat="thermal">Thermal</div>
+<div class="card" data-cat="thermal"><div class="card-img-wrap" style="height:190px"><img src="images/img_termal.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--coral)"></div><span class="card-title">Surface temp (LST)</span></div><div class="card-src">Landsat 8/9 L2 · ST_B10 · 30m · 8-day</div><div class="card-desc">Daytime overpass ~10:00 AM. Use anomaly (observed − monthly climatology), not raw °C.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge dyn">Dynamic</span><span class="badge enc">Transformer</span></div><a class="card-link" href="https://livingatlas.arcgis.com/landsat-surface-temp/" target="_blank">↗ ArcGIS LST</a></div></div></div>
+<div class="group-label" data-cat="air">Air temperature</div>
+<div class="card" data-cat="air"><div class="card-img-wrap" style="height:175px;background:#f1f1ee"><img src="images/img_netatmo.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--blue)"></div><span class="card-title">Air temp — crowdsourced</span></div><div class="card-src">Netatmo · EUMETNET/CEDA · ~100–300m · 5-min</div><div class="card-desc">Dense urban network for per-zone interpolation. Needs QC filtering near heat sources.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge dyn">Dynamic</span><span class="badge enc">LSTM</span></div><a class="card-link" href="https://weathermap.netatmo.com/" target="_blank">↗ Netatmo map</a></div></div></div>
+<div class="card" data-cat="air"><div class="card-img-wrap"><div class="placeholder-inner"><div class="ph-dot"><span style="color:var(--blue);font-size:14px">◆</span></div><span class="ph-label">Air temp — official</span><button class="add-btn" onclick="addImg(event,this)">+ add snapshot</button></div></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--blue)"></div><span class="card-title">Air temp — official</span></div><div class="card-src">ARSO · Bežigrad + Brnik · hourly</div><div class="card-desc">Only 2 stations in/near Ljubljana. Ground truth for LST offset calibration.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge dyn">Dynamic</span><span class="badge enc">LSTM</span></div><a class="card-link" href="https://meteo.arso.gov.si/met/sl/app/webmet/" target="_blank">↗ ARSO meteo</a></div></div></div>
+<div class="group-label" data-cat="meteo">Other meteo parameters</div>
+<div class="card" data-cat="meteo"><div class="card-img-wrap" style="height:190px"><img src="images/img_copernicus_era_explorer.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--skyblue)"></div><span class="card-title">Various meteo parameters</span></div><div class="card-src">ERA5 · hourly · ~30km</div><div class="card-desc">Key for PM/NO₂ dispersion. Weak wind + inversion = accumulation in basin. Encode direction as sin/cos.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge dyn">Dynamic</span><span class="badge enc">LSTM</span></div><a class="card-link" href="https://era-explorer.climate.copernicus.eu/?lat=46.10&amp;lng=14.53&amp;plot=1" target="_blank">↗ ERA Explorer</a></div></div></div>
+<div class="card" data-cat="meteo"><div class="card-img-wrap" style="height:190px;background:#f8f8f8"><img src="images/img_OpenMeteo.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--skyblue)"></div><span class="card-title">Various meteo parameters</span></div><div class="card-src">Open-Meteo · free API · 1–11km · hourly</div><div class="card-desc">Precipitation, humidity, pressure, cloud cover from national weather services. No API key required.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge dyn">Dynamic</span><span class="badge enc">LSTM</span></div><a class="card-link" href="https://open-meteo.com/en/docs?latitude=46.0511&amp;longitude=14.5051&amp;past_days=7&amp;forecast_days=1&amp;hourly=visibility,temperature_2m,precipitation,wind_speed_10m,wind_direction_10m" target="_blank">↗ Open-Meteo</a></div></div></div>
+<div class="group-label" data-cat="traffic">Traffic</div>
+<div class="card" data-cat="traffic"><div class="card-img-wrap"><div class="placeholder-inner"><div class="ph-dot"><span style="color:var(--purple);font-size:14px">◆</span></div><span class="ph-label">Traffic — official (ILC)</span><button class="add-btn" onclick="addImg(event,this)">+ add snapshot</button></div></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--purple)"></div><span class="card-title">Traffic — official (ILC)</span></div><div class="card-src">DRSI / DARS / MOL · inductive loops · hourly</div><div class="card-desc">Primary observation for AM/PM peak signal. No modal split. MOL city roads on request.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge dyn">Dynamic</span><span class="badge enc">LSTM</span></div><a class="card-link" href="https://www.promet.si/sl/stevci-prometa" target="_blank">↗ DRSI/DARS</a></div></div></div>
+<div class="card" data-cat="traffic"><div class="card-img-wrap"><img src="images/img_telraam.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--purple)"></div><span class="card-title">Traffic — Telraam (WeCount)</span></div><div class="card-src">WeCount · southern ring road · daytime</div><div class="card-desc">Modal split: car / bike / pedestrian. Daytime only (camera-based).</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge dyn">Dynamic</span><span class="badge enc">LSTM</span></div><a class="card-link" href="https://telraam.net/en/map" target="_blank">↗ Telraam map</a></div></div></div>
+<div class="group-label" data-cat="mobility">Mobility / trip flows</div>
+<div class="card" data-cat="mobility"><div class="card-img-wrap"><div class="placeholder-inner"><div class="ph-dot"><span style="color:var(--purple);font-size:14px">◆</span></div><span class="ph-label">Road speeds + travel times</span><button class="add-btn" onclick="addImg(event,this)">+ add snapshot</button></div></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--purple)"></div><span class="card-title">Road speeds + travel times</span></div><div class="card-src">Google Roads Management Insights · 2-min</div><div class="card-desc">Aggregated speeds, peak hour detection. Covers full LJ road network. Commercial product.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge dyn">Dynamic</span><span class="badge enc">LSTM</span></div><a class="card-link" href="https://developers.google.com/maps/documentation/roads-management-insights" target="_blank">↗ RMI docs</a></div></div></div>
+<div class="card" data-cat="mobility"><div class="card-img-wrap"><div class="placeholder-inner"><div class="ph-dot"><span style="color:var(--purple);font-size:14px">◆</span></div><span class="ph-label">OD matrike / trip flows</span><button class="add-btn" onclick="addImg(event,this)">+ add snapshot</button></div></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--purple)"></div><span class="card-title">OD matrike / trip flows</span></div><div class="card-src">TomTom Move · HERE · aggregated</div><div class="card-desc">Origin-destination flows. Relevant for contrastive learning mobility view. Commercial product.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge dyn">Dynamic</span><span class="badge enc">GNN</span></div><span class="card-res">OD pair</span></div></div></div>
+<div class="card" data-cat="mobility"><div class="card-img-wrap"><div class="placeholder-inner"><div class="ph-dot"><span style="color:var(--purple);font-size:14px">◆</span></div><span class="ph-label">Mobile network data (CDR)</span><button class="add-btn" onclick="addImg(event,this)">+ add snapshot</button></div></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--purple)"></div><span class="card-title">Mobile network data (CDR)</span></div><div class="card-src">Telekom Slovenije · A1 · agregatni · hourly</div><div class="card-desc">Closest LBSN equivalent for Ljubljana. Best candidate for contrastive learning mobility view.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge dyn">Dynamic</span><span class="badge enc">Transformer</span></div><span class="card-res">Cell · hourly</span></div></div></div>
+<div class="card" data-cat="mobility"><div class="card-img-wrap"><div class="placeholder-inner"><div class="ph-dot"><span style="color:var(--purple);font-size:14px">◆</span></div><span class="ph-label">Google Popular Times</span><button class="add-btn" onclick="addImg(event,this)">+ add snapshot</button></div></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--purple)"></div><span class="card-title">Google Popular Times</span></div><div class="card-src">Google Maps Places API · POI · hourly</div><div class="card-desc">Venue occupancy proxy for LBSN check-in signal. No official API — via populartimes library.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge dyn">Dynamic</span><span class="badge enc">LSTM</span></div><span class="card-res">POI</span></div></div></div>
+<div class="group-label" data-cat="population">Population</div>
+<div class="card" data-cat="population"><div class="card-img-wrap" style="height:190px"><img src="images/img_pop_surs.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--gray)"></div><span class="card-title">Population density</span></div><div class="card-src">SURS · 100×100m grid · census</div><div class="card-desc">Zone exposure weight. Static prior — not a dynamic observation.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge sta">Static</span><span class="badge enc">MLP</span></div><a class="card-link" href="https://www.stat.si/statweb/en/Home" target="_blank">↗ SURS data</a></div></div></div>
+<div class="group-label" data-cat="greenery">Greenery / canopy</div>
+<div class="card" data-cat="greenery"><div class="card-img-wrap"><div class="placeholder-inner"><div class="ph-dot"><span style="color:var(--green);font-size:14px">◆</span></div><span class="ph-label">NDVI — vegetation index</span><button class="add-btn" onclick="addImg(event,this)">+ add snapshot</button></div></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--green)"></div><span class="card-title">NDVI — vegetation index</span></div><div class="card-src">Landsat 8/9 · B4/B5 · 30m · 8-day</div><div class="card-desc">Strongly seasonal. Use anomaly not raw values. Cannot detect tree height.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge dyn">Dynamic</span><span class="badge enc">Transformer</span></div><a class="card-link" href="https://livingatlas.arcgis.com/landsatexplorer/" target="_blank">↗ Landsat Explorer</a></div></div></div>
+<div class="card" data-cat="greenery"><div class="card-img-wrap"><div class="placeholder-inner"><div class="ph-dot"><span style="color:var(--green);font-size:14px">◆</span></div><span class="ph-label">Vegetation height — 10m</span><button class="add-btn" onclick="addImg(event,this)">+ add snapshot</button></div></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--green)"></div><span class="card-title">Vegetation height — 10m</span></div><div class="card-src">ETH Zurich · Lang et al. 2023 · 10m · static</div><div class="card-desc">Tall forest (Rožnik 15–50m) vs low veg. Includes all vegetation, not only trees.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge sta">Static</span><span class="badge enc">CNN</span></div><a class="card-link" href="https://nlang.users.earthengine.app/view/global-canopy-height-2020" target="_blank">↗ GEE viewer</a></div></div></div>
+<div class="card" data-cat="greenery"><div class="card-img-wrap"><div class="placeholder-inner"><div class="ph-dot"><span style="color:var(--green);font-size:14px">◆</span></div><span class="ph-label">Tree canopy height — 1m</span><button class="add-btn" onclick="addImg(event,this)">+ add snapshot</button></div></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--green)"></div><span class="card-title">Tree canopy height — 1m</span></div><div class="card-src">Meta / WRI · 2020 · 1m · static</div><div class="card-desc">Individual tree crown detection. Use for fine-grained canopy cover % per zone.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge sta">Static</span><span class="badge enc">CNN</span></div><a class="card-link" href="https://meta-forest-monitoring-okw37.projects.earthengine.app/view/canopyheight" target="_blank">↗ Meta viewer</a></div></div></div>
+<div class="group-label" data-cat="morphology">Morphology</div>
+<div class="card" data-cat="morphology"><div class="card-img-wrap" style="height:190px"><img src="images/img_e-prostor_kataster_nepremicnin.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--teal)"></div><span class="card-title">Building footprints — official</span></div><div class="card-src">GURS · Kataster nepremičnin · CC BY</div><div class="card-desc">Most accurate source for Slovenia. Parcel-level, nationally maintained.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge sta">Static</span><span class="badge enc">MLP</span></div><a class="card-link" href="https://ipi.eprostor.gov.si/jv/" target="_blank">↗ eProStor</a></div></div></div>
+<div class="card" data-cat="morphology"><div class="card-img-wrap" style="height:190px"><img src="images/img_eubbuco_building_height.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--teal)"></div><span class="card-title">Building footprints + heights</span></div><div class="card-src">EUBUCCO v1 · zenodo.7225259 · EU-wide</div><div class="card-desc">74% height coverage. Building type and construction year. Also used as zonal stats — mean height, H/W canyon ratio, SVF input per zone.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge sta">Static</span><span class="badge enc">MLP</span></div><a class="card-link" href="https://eubucco.com/data/map" target="_blank">↗ EUBUCCO map</a></div></div></div>
+<div class="card" data-cat="morphology"><div class="card-img-wrap" style="height:190px"><img src="images/img_copernicus_building_height.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--teal)"></div><span class="card-title">Building heights — raster</span></div><div class="card-src">Copernicus Urban Atlas BH 2012 v3 · 10m</div><div class="card-desc">DSM−DTM nDSM. Best for continuous SVF computation. 2012 vintage.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge sta">Static</span><span class="badge enc">CNN</span></div><a class="card-link" href="https://land.copernicus.eu/en/map-viewer?dataset=9b64a56b49f74f458aa401ad7809af16" target="_blank">↗ CLMS BH</a></div></div></div>
+<div class="group-label" data-cat="emissions">Emissions / air quality</div>
+<div class="card" data-cat="emissions"><div class="card-img-wrap"><div class="placeholder-inner"><div class="ph-dot"><span style="color:var(--amber);font-size:14px">◆</span></div><span class="ph-label">NO₂, PM2.5, O₃</span><button class="add-btn" onclick="addImg(event,this)">+ add snapshot</button></div></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--amber)"></div><span class="card-title">NO₂, PM2.5, O₃</span></div><div class="card-src">Copernicus CAMS · reanalysis · ~10km</div><div class="card-desc">City-scale background signal. Too coarse for neighbourhood distinction — combine with Sentinel-5P.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge dyn">Dynamic</span><span class="badge enc">LSTM</span></div><a class="card-link" href="https://atmosphere.copernicus.eu/charts/cams" target="_blank">↗ CAMS viewer</a></div></div></div>
+<div class="card" data-cat="emissions"><div class="card-img-wrap"><div class="placeholder-inner"><div class="ph-dot"><span style="color:var(--amber);font-size:14px">◆</span></div><span class="ph-label">NO₂ column (satellite)</span><button class="add-btn" onclick="addImg(event,this)">+ add snapshot</button></div></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--amber)"></div><span class="card-title">NO₂ column (satellite)</span></div><div class="card-src">Sentinel-5P TROPOMI · 3.5×5.5km · daily</div><div class="card-desc">Covers Ljubljana as ~4–6 pixels. Traffic emission proxy at city scale.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge dyn">Dynamic</span><span class="badge enc">Transformer</span></div><a class="card-link" href="https://browser.dataspace.copernicus.eu/" target="_blank">↗ Copernicus Browser</a></div></div></div>
+<div class="group-label" data-cat="suggested">Suggested additions</div>
+<div class="card" data-cat="suggested"><div class="card-img-wrap"><div class="placeholder-inner"><div class="ph-dot"><span style="color:var(--pink);font-size:14px">◆</span></div><span class="ph-label">POI density / mix</span><button class="add-btn" onclick="addImg(event,this)">+ add snapshot</button></div></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--pink)"></div><span class="card-title">POI density / mix</span></div><div class="card-src">OpenStreetMap · kernel density</div><div class="card-desc">Urban function prior. Compute per POI category (retail, food, transport, office) with OSMnx.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge sta">Static</span><span class="badge enc">MLP</span></div><a class="card-link" href="https://www.openstreetmap.org/#map=13/46.0569/14.5058" target="_blank">↗ OSM Ljubljana</a></div></div></div>
+<div class="card" data-cat="suggested"><div class="card-img-wrap"><div class="placeholder-inner"><div class="ph-dot"><span style="color:var(--pink);font-size:14px">◆</span></div><span class="ph-label">Impervious surface %</span><button class="add-btn" onclick="addImg(event,this)">+ add snapshot</button></div></div><div class="card-body"><div class="card-header"><div class="cdot" style="background:var(--pink)"></div><span class="card-title">Impervious surface %</span></div><div class="card-src">Copernicus HRL · 2018 + 2021 · 10m</div><div class="card-desc">Strongest single predictor of LST elevation. 2018 and 2021 epochs available.</div><div class="card-foot"><div style="display:flex;gap:5px"><span class="badge sta">Static</span><span class="badge enc">CNN</span></div><a class="card-link" href="https://land.copernicus.eu/en/products/high-resolution-layer-imperviousness" target="_blank">↗ Copernicus HRL</a></div></div></div>
+</div>
+
+<div class="lb" id="lb" onclick="closeLb(event)">
+  <div class="lb-inner">
+    <button class="lb-x" onclick="closeLb()">✕</button>
+    <img class="lb-img" id="lb-img" src="" alt="">
+    <div class="lb-body">
+      <div class="lb-title" id="lb-title"></div>
+      <div class="lb-src" id="lb-src"></div>
+      <div class="lb-desc" id="lb-desc"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>Ljubljana SSHMM · Layer snapshot gallery · Urban typology study · 2024–2026</span>
+  <span>+ add snapshot to upload · click image to enlarge</span>
+</footer>
+
+<script>
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const cat = btn.dataset.cat;
+    document.querySelectorAll('.card, .group-label').forEach(el => {
+      if (cat === 'all' || el.dataset.cat === cat) el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    });
+  });
+});
+function addImg(e, btn) {
+  e.stopPropagation();
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = ev => {
+    const file = ev.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = r => {
+      const wrap = btn.closest('.card-img-wrap');
+      wrap.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = r.target.result;
+      wrap.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+document.querySelectorAll('.card').forEach(card => {
+  card.addEventListener('click', e => {
+    if (e.target.classList.contains('add-btn')) return;
+    const img = card.querySelector('img');
+    if (!img) return;
+    document.getElementById('lb-img').src = img.src;
+    document.getElementById('lb-title').textContent = card.querySelector('.card-title').textContent;
+    document.getElementById('lb-src').textContent = card.querySelector('.card-src').textContent;
+    document.getElementById('lb-desc').textContent = card.querySelector('.card-desc').textContent;
+    document.getElementById('lb').classList.add('open');
+  });
+});
+function closeLb(e) {
+  if (!e || e.target === document.getElementById('lb') || e.target.classList.contains('lb-x'))
+    document.getElementById('lb').classList.remove('open');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('lb').classList.remove('open'); });
+</script>
+</body>
+</html>
